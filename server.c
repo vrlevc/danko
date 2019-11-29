@@ -95,7 +95,91 @@ static void handle_get (int connection_fd, const char* page)
 
 static void handle_connection (int connection_fd)
 {
+    char buffer[256];
+    ssize_t bytes_read;
 
+    /**
+     * Read some data from the client.
+     */
+
+    bytes_read = read (connection_fd, buffer, sizeof (buffer) - 1);
+    if (bytes_read > 0) 
+    {
+        char method[sizeof (buffer)];
+        char url[sizeof (buffer)];
+        char protocol[sizeof (buffer)];
+
+        /**
+         * Some data was read successfully.
+         * NUL-terminated the buffer so we can use string operations on it.
+         */
+
+        buffer[bytes_read] = '\0';
+
+        /**
+         * The first line the client sends is the HTTP request, which is 
+         * composed of a method, the request page, and the protocol version.
+         */
+
+        sscanf (buffer, "%s %s %s", method, url, protocol);
+
+        /**
+         * The client may send various header information following the request.
+         * For this HTTP implementation, we don't care about it. However, we need
+         * to read any data the client tries to send. Keep on reading data until
+         * we get to the end of the header, which id delimited by a blank line.
+         * HTTP specifies CR/LF as the line delimeter.
+         */
+
+        while (strstr (buffer, "\r\n\r\n") == NULL)
+            bytes_read = read (connection_fd, buffer, sizeof (buffer) - 1);
+            
+        /**
+         * Make sure the last read didn't fail.
+         * If it did, there's a problem with connection, so give up.
+         */
+
+        if (bytes_read == -1) 
+        {
+            close (connection_fd);
+            return;
+        }
+
+        /**
+         * Check the protocol field.
+         * We understand HTTP version 1.0 and 1.1.
+         */
+
+        if (strcmp (protocol, "HTTP/1.0") && strcmp (protocol, "HTTP/1.1")) 
+        {
+            /* We don't understand this protocol. Report a bad response. */
+            write (connection_fd, bad_request_response, sizeof (bad_request_response));
+        }
+        else if (strcmp (method, "GET")) 
+        {
+            /* This server only implements the GET method. The client
+               specified some other method, so report the failure. */
+            char response[1024];
+
+            snprintf (response, sizeof (response), bad_method_response_template, method);
+            write (connection_fd, response, strlen (response));
+        }
+        else
+        {
+            /* A valid request. Process it. */
+            handle_get (connection_fd, url);
+        }
+
+    }
+    else if (bytes_read == 0)
+        /**
+         * The client closed the connection before sending any data.
+         * Nothing to do.
+         */
+        ;
+    else 
+        /* The call to read failed. */
+        system_error ("read");
 }
 
 void server_run (struct in_addr local_address, uint16_t port)
