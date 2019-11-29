@@ -30,7 +30,7 @@ void* xrealloc (void* ptr, size_t size)
         return ptr;
 }
 
-char* xsrtdup (const char* s)
+char* xstrdup (const char* s)
 {
     char* copy = strdup (s);
     /* Abort if the allocation failed. */

@@ -105,11 +105,41 @@ int main (int argc, char* const argv[])
             print_usage (0);
 
         case 'm':
-            /* TODO : not impl yet */
+            /* User specified -m or --module-dir. */
+            {
+                struct stat dir_info;
+
+                /* Check that it exist. */ 
+                if (access (optarg, F_OK) != 0)
+                    error (optarg, "module directory does not exist");
+                
+                /* Check that it is accessible. */
+                if (access (optarg, R_OK | X_OK) != 0)
+                    error (optarg, "module directory is not accessible");
+
+                /* Make sure that it is a directory */
+                if (stat (optarg, &dir_info) != 0 || !S_ISDIR (dir_info.st_mode))
+                    error (optarg, "not a directory");
+                
+                /* It looks OK, so use it */
+                module_dir = xstrdup (optarg);
+            }
             break;
 
         case 'p':
-            /* TODO : not impl yet */
+            /* User specified -p or --port. */
+            {
+                long value;
+                char* end;
+
+                value = strtol (optarg, &end, 10);
+                if (*end != '\0')
+                    /* The user specified nothing in the port number. */
+                    print_usage (1);
+                else 
+                    /* The port number needs to be converted to network (big endian) byte order */
+                    port = (uint16_t) htons (value);
+            }
             break;
         
         case 'v':
