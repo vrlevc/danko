@@ -12,7 +12,7 @@
 static char* page_template =
     "<html>\n"
     " <head>\n"
-    "  <meta http-equiv=\"refreash\" content=\"5\">\n"
+    "  <meta http-equiv=\"refresh\" content=\"5\">\n"
     " </head>\n"
     " <body>\n"
     "  <p>The curent time is %s.</p>\n"
